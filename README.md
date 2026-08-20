@@ -18,9 +18,18 @@ con los datos guardados en el `localStorage` del navegador.
 
 ## Cómo usarlo
 
+🔗 **App en vivo:** https://danielleon21.github.io/gym-tracker/
+
+Los datos se guardan en el `localStorage` de tu navegador, así que son propios de cada
+dispositivo/navegador donde entres. Usá Exportar/Importar para pasarlos entre dispositivos
+o hacer un backup.
+
+### Correrlo en tu máquina
+
 Abrí `index.html` en el navegador. No hace falta servidor ni instalar nada.
 
-Para publicarlo en GitHub Pages: subí la carpeta a un repo y activá Pages sobre la rama `main`.
+Cada push a la rama `main` de este repo redespliega automáticamente la app en vivo (GitHub Pages,
+sirviendo `main` desde la raíz).
 
 ## Estructura
 
