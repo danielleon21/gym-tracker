@@ -45,19 +45,91 @@ function exportData() {
 
 function importData(event) {
   const file = event.target.files[0];
+  event.target.value = '';   // permite volver a elegir el mismo archivo
   if (!file) return;
 
   const reader = new FileReader();
+
+  reader.onerror = () => importError(file, 'No se pudo leer el archivo.');
+
   reader.onload = () => {
+    let incoming;
     try {
-      Store.importJSON(reader.result);
-      UI.toast('Datos importados');
-      UI.showView('dashboard');
+      incoming = Store.parseImport(reader.result);
     } catch (err) {
       console.error(err);
-      UI.toast('No se pudo importar el archivo');
+      importError(file, 'No parece ser un backup de Gym Tracker. Tiene que ser el archivo .json que genera el botón Exportar.');
+      return;
     }
+    confirmImport(file, incoming);
   };
+
   reader.readAsText(file);
-  event.target.value = '';
+}
+
+/** Muestra que se va a importar y que se va a perder, antes de tocar nada. */
+function confirmImport(file, incoming) {
+  const current = Store.summarize();
+  const next = Store.summarize(incoming);
+
+  UI.openModal({
+    title: 'Confirmar importación',
+    body: `
+      <p style="margin-top:0">Archivo: <strong>${escapeHtml(file.name)}</strong></p>
+      <div class="stats-grid" style="margin-bottom:12px">
+        <div class="stat-card">
+          <span class="stat-label">Vas a importar</span>
+          <strong class="stat-value">${next.routines} <small>rutinas</small></strong>
+          <strong class="stat-value">${next.sessions} <small>sesiones</small></strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Se van a reemplazar</span>
+          <strong class="stat-value">${current.routines} <small>rutinas</small></strong>
+          <strong class="stat-value">${current.sessions} <small>sesiones</small></strong>
+        </div>
+      </div>
+      <p class="li-sub" style="margin-bottom:0">La importación <strong>reemplaza todos los datos de este dispositivo</strong>, no los combina. Si querés conservar lo que tenés acá, cancelá y usá Exportar primero.</p>
+    `,
+    actions: [
+      { label: 'Cancelar', onClick: () => UI.closeModal() },
+      {
+        label: 'Importar y reemplazar',
+        className: 'btn-primary',
+        onClick: () => {
+          Store.applyImport(incoming);
+          showImportResult(next);
+        }
+      }
+    ]
+  });
+}
+
+/** Confirmacion explicita de que la importacion termino bien. */
+function showImportResult(summary) {
+  UI.showView('dashboard');
+  UI.openModal({
+    title: '✅ Datos importados',
+    body: `
+      <p style="margin-top:0">Se importaron correctamente:</p>
+      <div class="list">
+        <div class="list-item"><span class="li-title">Rutinas</span><span class="li-title">${summary.routines}</span></div>
+        <div class="list-item"><span class="li-title">Sesiones</span><span class="li-title">${summary.sessions}</span></div>
+      </div>
+    `,
+    actions: [
+      { label: 'Ver rutinas', onClick: () => { UI.closeModal(); UI.showView('routines'); } },
+      { label: 'Ir al dashboard', className: 'btn-primary', onClick: () => UI.closeModal() }
+    ]
+  });
+}
+
+function importError(file, detail) {
+  UI.openModal({
+    title: '⚠️ No se pudo importar',
+    body: `
+      <p style="margin-top:0">No se importó nada: <strong>tus datos actuales quedaron intactos</strong>.</p>
+      <p class="li-sub" style="margin-bottom:0">${escapeHtml(file.name)} — ${escapeHtml(detail)}</p>
+    `,
+    actions: [{ label: 'Entendido', className: 'btn-primary', onClick: () => UI.closeModal() }]
+  });
 }
