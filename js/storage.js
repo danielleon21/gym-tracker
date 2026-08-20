@@ -156,13 +156,31 @@ const Store = {
     return JSON.stringify(this.data, null, 2);
   },
 
-  importJSON(json) {
+  /**
+   * Valida el contenido de un backup y lo devuelve parseado, SIN aplicarlo.
+   * Se separa de applyImport para poder mostrarle al usuario que va a importar
+   * antes de pisar sus datos actuales.
+   */
+  parseImport(json) {
     const parsed = JSON.parse(json);
     if (!Array.isArray(parsed.routines) || !Array.isArray(parsed.sessions)) {
       throw new Error('El archivo no tiene el formato esperado');
     }
+    return parsed;
+  },
+
+  /** Reemplaza todos los datos por los del backup ya validado. */
+  applyImport(parsed) {
     this.data = Object.assign(structuredClone(DEFAULT_DATA), parsed);
     this.save();
+  },
+
+  /** Cuenta que hay en un set de datos, para los resumenes de importacion. */
+  summarize(data = this.data) {
+    return {
+      routines: data.routines.length,
+      sessions: data.sessions.length
+    };
   }
 };
 
