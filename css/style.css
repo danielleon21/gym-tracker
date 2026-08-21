@@ -245,11 +245,37 @@ small { font-size: .7em; color: var(--text-dim); font-weight: 500; }
 }
 
 /* ---------- Progreso ---------- */
-.progress-bars { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.pb-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; align-items: center; font-size: .78rem; }
-.pb-track { background: var(--bg-elev-2); border-radius: 999px; height: 10px; overflow: hidden; }
-.pb-fill { background: var(--accent); height: 100%; border-radius: 999px; }
-.pb-date { color: var(--text-dim); }
+.chart-wrap { position: relative; margin-top: 10px; }
+.chart-svg { display: block; width: 100%; height: auto; aspect-ratio: 640 / 220; overflow: visible; }
+.chart-grid { stroke: var(--border); stroke-width: 1; }
+.chart-axis-y, .chart-axis-x { fill: var(--text-dim); font-size: 9px; font-family: inherit; }
+.chart-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chart-area { pointer-events: none; }
+.chart-dot { fill: var(--accent); stroke: var(--bg-elev); stroke-width: 2; pointer-events: none; }
+.chart-crosshair { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; transition: opacity .1s; }
+.chart-crosshair.is-visible { opacity: .5; }
+.chart-highlight { fill: var(--accent); stroke: var(--bg-elev); stroke-width: 2; opacity: 0; transition: opacity .1s; }
+.chart-highlight.is-visible { opacity: 1; }
+.chart-overlay { cursor: crosshair; }
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: .72rem;
+  line-height: 1.5;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transition: opacity .1s;
+  white-space: nowrap;
+  z-index: 5;
+}
+.chart-tooltip.is-visible { opacity: 1; }
+.chart-tooltip .tt-date { display: block; color: var(--text-dim); font-size: .68rem; }
+.chart-tooltip .tt-weight { font-weight: 700; color: var(--accent); }
 
 /* ---------- Toast ---------- */
 .toast {
