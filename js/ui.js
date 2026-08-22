@@ -64,7 +64,10 @@ const UI = {
     $$('.view').forEach(v => v.classList.toggle('is-active', v.id === `view-${name}`));
     $$('.tab').forEach(t => t.classList.toggle('is-active', t.dataset.view === name));
 
-    if (name !== 'workout') RestTimer.stopTicking();
+    if (name !== 'workout') {
+      RestTimer.stopTicking();
+      RestTimer.releaseWakeLock();
+    }
 
     if (name === 'dashboard') Dashboard.render();
     if (name === 'routines') Routines.render();

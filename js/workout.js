@@ -295,6 +295,7 @@ const Workout = {
     Store.saveSession(saved);
     Store.clearActiveSession();
     RestTimer.stopTicking();
+    RestTimer.releaseWakeLock();
     UI.toast('¡Sesión guardada!');
     UI.showView('dashboard');
   },
@@ -303,6 +304,7 @@ const Workout = {
     UI.confirm('¿Descartar la sesión en curso? Se pierden los datos cargados.', () => {
       Store.clearActiveSession();
       RestTimer.stopTicking();
+      RestTimer.releaseWakeLock();
       UI.toast('Sesión descartada');
       this.render();
     });

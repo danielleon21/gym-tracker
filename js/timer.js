@@ -10,6 +10,9 @@
  */
 const RestTimer = {
   intervalId: null,
+  audioCtx: null,
+  wakeLock: null,
+  currentSession: null,
 
   /** Crea session.restTimer si todavia no existe (sesiones nuevas o viejas). */
   ensure(session, defaultDuration = DEFAULT_REST_SECONDS) {
@@ -35,6 +38,8 @@ const RestTimer = {
     t.remaining = base;
     t.endAt = Date.now() + base * 1000;
     Store.setActiveSession(session);
+    this.unlockAudio();
+    this.requestWakeLock();
     this.mount(session);
   },
 
@@ -45,6 +50,7 @@ const RestTimer = {
     t.status = 'paused';
     t.endAt = null;
     Store.setActiveSession(session);
+    this.releaseWakeLock();
     this.mount(session);
   },
 
@@ -55,6 +61,8 @@ const RestTimer = {
     t.remaining = t.duration;
     t.endAt = Date.now() + t.duration * 1000;
     Store.setActiveSession(session);
+    this.unlockAudio();
+    this.requestWakeLock();
     this.mount(session);
   },
 
@@ -65,6 +73,7 @@ const RestTimer = {
     t.remaining = t.duration;
     t.endAt = null;
     Store.setActiveSession(session);
+    this.releaseWakeLock();
     this.mount(session);
   },
 
@@ -80,6 +89,64 @@ const RestTimer = {
     this.intervalId = null;
   },
 
+  /* ---------- Avisos: sonido, vibracion y pantalla activa ---------- */
+
+  /**
+   * Crea (o reactiva) el AudioContext dentro del gesto del usuario que
+   * arranca el descanso. iOS/Safari solo deja sonar audio si el contexto
+   * se desbloqueo en respuesta a un toque; reusarlo despues (cuando el
+   * descanso termina solo) ya no necesita gesto.
+   */
+  unlockAudio() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!this.audioCtx) this.audioCtx = new AudioCtx();
+    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+  },
+
+  /** Dos beeps cortos para avisar que el descanso termino. */
+  playBeep() {
+    const ctx = this.audioCtx;
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [[880, 0], [660, 0.22]].forEach(([freq, delay]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const start = now + delay;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.linearRampToValueAtTime(0, start + 0.18);
+      osc.start(start);
+      osc.stop(start + 0.2);
+    });
+  },
+
+  /** No-op silencioso en navegadores sin Vibration API (todo iOS). */
+  vibrate() {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  },
+
+  /** Evita que la pantalla se apague mientras el descanso esta corriendo. */
+  async requestWakeLock() {
+    if (this.wakeLock || !('wakeLock' in navigator)) return;
+    try {
+      this.wakeLock = await navigator.wakeLock.request('screen');
+      this.wakeLock.addEventListener('release', () => { this.wakeLock = null; });
+    } catch (err) {
+      console.warn('No se pudo mantener la pantalla activa:', err);
+    }
+  },
+
+  releaseWakeLock() {
+    if (this.wakeLock) {
+      this.wakeLock.release().catch(() => {});
+      this.wakeLock = null;
+    }
+  },
+
   /**
    * Cablea los controles de la tarjeta del temporizador y arranca el
    * refresco visual si corresponde. Se llama cada vez que se pinta la
@@ -88,6 +155,7 @@ const RestTimer = {
    */
   mount(session) {
     this.stopTicking();
+    this.currentSession = session;
     const t = this.ensure(session);
     const card = $('#rest-timer');
     if (!card) return;   // la vista de entrenamiento no esta activa
@@ -121,6 +189,9 @@ const RestTimer = {
           t.endAt = null;
           Store.setActiveSession(session);
           this.stopTicking();
+          this.releaseWakeLock();
+          this.playBeep();
+          this.vibrate();
           UI.toast('⏱ ¡Descanso terminado!');
           card.classList.add('is-finished');
           setTimeout(() => card.classList.remove('is-finished'), 3000);
@@ -143,3 +214,13 @@ const RestTimer = {
     btnStop.addEventListener('click', () => this.stop(session));
   }
 };
+
+/**
+ * El navegador libera el wake lock solo al ocultarse la pestaña. Si el
+ * descanso sigue corriendo cuando volvemos a mirarla, lo volvemos a pedir.
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const t = RestTimer.currentSession?.restTimer;
+  if (t && t.status === 'running') RestTimer.requestWakeLock();
+});
