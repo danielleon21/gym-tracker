@@ -214,6 +214,29 @@ small { font-size: .7em; color: var(--text-dim); font-weight: 500; }
 .modal-body { padding: 18px; overflow-y: auto; }
 .modal-foot { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
 
+/* ---------- Temporizador de descanso ---------- */
+.timer-card { border-color: var(--border); transition: border-color .2s; }
+.timer-card.is-running { border-color: var(--accent); }
+.timer-card.is-paused { border-color: var(--text-dim); }
+.timer-card.is-finished { border-color: var(--green); animation: timer-pulse 1s ease 2; }
+@keyframes timer-pulse {
+  0%, 100% { background: var(--bg-elev); }
+  50% { background: rgba(46, 160, 67, 0.15); }
+}
+.timer-duration { display: flex; align-items: center; gap: 6px; }
+.timer-display {
+  font-size: 2.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  letter-spacing: .02em;
+  margin: 4px 0 14px;
+}
+.timer-card.is-running .timer-display { color: var(--accent); }
+.timer-controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.timer-controls .btn { flex: 1; min-width: 90px; }
+.timer-controls .btn:disabled { opacity: .4; cursor: not-allowed; }
+
 /* ---------- Sesion de entrenamiento ---------- */
 .exercise-block {
   background: var(--bg-elev);

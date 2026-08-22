@@ -24,6 +24,7 @@ const Routines = {
           ${r.exercises.map(e => `<span>• ${escapeHtml(e.name)} — ${e.sets}x${e.reps}${e.weight ? ` @ ${e.weight}kg` : ''}</span>`).join('')
             || '<span>Sin ejercicios</span>'}
         </div>
+        <span class="li-sub">⏱ Descanso: ${r.restSeconds ?? DEFAULT_REST_SECONDS}s</span>
         <div class="routine-actions">
           <button class="btn btn-primary btn-sm" data-start="${r.id}">Entrenar</button>
           <button class="btn btn-sm" data-edit="${r.id}">Editar</button>
@@ -45,7 +46,7 @@ const Routines = {
 
   /** Abre el modal de alta/edicion. id = null para crear una nueva. */
   openEditor(id) {
-    const routine = id ? Store.getRoutine(id) : { id: null, name: '', notes: '', exercises: [] };
+    const routine = id ? Store.getRoutine(id) : { id: null, name: '', notes: '', restSeconds: DEFAULT_REST_SECONDS, exercises: [] };
     if (!routine) return;
 
     const body = `
@@ -53,9 +54,15 @@ const Routines = {
         <label for="r-name">Nombre de la rutina</label>
         <input class="input" id="r-name" placeholder="Push A, Pierna, Full body..." value="${escapeHtml(routine.name)}">
       </div>
-      <div class="field">
-        <label for="r-notes">Notas (opcional)</label>
-        <input class="input" id="r-notes" placeholder="Descanso 90s, enfoque en técnica..." value="${escapeHtml(routine.notes || '')}">
+      <div class="field-row">
+        <div class="field">
+          <label for="r-notes">Notas (opcional)</label>
+          <input class="input" id="r-notes" placeholder="Enfoque en técnica, etc." value="${escapeHtml(routine.notes || '')}">
+        </div>
+        <div class="field" style="max-width:160px">
+          <label for="r-rest">Descanso entre series (seg)</label>
+          <input class="input" id="r-rest" type="number" min="5" step="5" value="${routine.restSeconds ?? DEFAULT_REST_SECONDS}">
+        </div>
       </div>
       <div class="field">
         <label>Ejercicios</label>
@@ -115,10 +122,13 @@ const Routines = {
       return;
     }
 
+    const restSeconds = Math.max(5, Number($('#r-rest').value) || DEFAULT_REST_SECONDS);
+
     Store.saveRoutine({
       id: id || uid(),
       name,
       notes: $('#r-notes').value.trim(),
+      restSeconds,
       exercises,
       createdAt: id ? Store.getRoutine(id).createdAt : new Date().toISOString()
     });

@@ -72,7 +72,7 @@ const Workout = {
       };
     });
 
-    Store.setActiveSession({
+    const session = {
       id: uid(),
       routineId: routine?.id || null,
       routineName: routine?.name || 'Sesión libre',
@@ -80,7 +80,9 @@ const Workout = {
       startedAt: new Date().toISOString(),
       notes: '',
       entries
-    });
+    };
+    RestTimer.ensure(session, routine?.restSeconds ?? DEFAULT_REST_SECONDS);
+    Store.setActiveSession(session);
 
     UI.showView('workout');
   },
@@ -118,6 +120,23 @@ const Workout = {
         </div>
       </div>
 
+      <div class="card timer-card" id="rest-timer">
+        <div class="card-head">
+          <h2>⏱ Descanso</h2>
+          <div class="timer-duration">
+            <input class="input" id="timer-duration-input" type="number" min="5" step="5" style="width:80px">
+            <span class="li-sub">seg</span>
+          </div>
+        </div>
+        <div class="timer-display" id="timer-display">00:00</div>
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="timer-start">Iniciar</button>
+          <button class="btn" id="timer-pause">Pausar</button>
+          <button class="btn" id="timer-restart">Reiniciar</button>
+          <button class="btn btn-danger" id="timer-stop">Detener</button>
+        </div>
+      </div>
+
       <div id="entries"></div>
 
       <div class="card">
@@ -134,6 +153,7 @@ const Workout = {
     `;
 
     this.renderEntries(session);
+    RestTimer.mount(session);
 
     $('#session-date').addEventListener('change', e => {
       session.date = e.target.value || toISODate();
@@ -270,9 +290,12 @@ const Workout = {
     saved.entries = saved.entries
       .map(e => ({ ...e, sets: e.sets.filter(s => s.done) }))
       .filter(e => e.sets.length > 0);
+    delete saved.restTimer;   // estado efimero, no tiene sentido en el historico
 
     Store.saveSession(saved);
     Store.clearActiveSession();
+    RestTimer.stopTicking();
+    RestTimer.releaseWakeLock();
     UI.toast('¡Sesión guardada!');
     UI.showView('dashboard');
   },
@@ -280,6 +303,8 @@ const Workout = {
   discard() {
     UI.confirm('¿Descartar la sesión en curso? Se pierden los datos cargados.', () => {
       Store.clearActiveSession();
+      RestTimer.stopTicking();
+      RestTimer.releaseWakeLock();
       UI.toast('Sesión descartada');
       this.render();
     });

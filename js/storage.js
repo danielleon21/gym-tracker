@@ -3,6 +3,7 @@
    ============================================================ */
 
 const STORAGE_KEY = 'gymtracker.v1';
+const DEFAULT_REST_SECONDS = 90;
 
 const DEFAULT_DATA = {
   routines: [],
@@ -44,6 +45,13 @@ function formatDate(iso) {
 function formatDateShort(iso) {
   const d = fromISODate(iso);
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Segundos a 'mm:ss', para el temporizador de descanso. */
+function formatMMSS(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(s / 60);
+  return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
 function escapeHtml(str) {
